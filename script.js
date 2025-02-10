@@ -109,13 +109,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Popup för att fånga leads som försöker lämna sidan
+    // Förbättrad hantering av exit intent popup
     let hasShownExitIntent = false;
-    
+    let hasSubmittedForm = false;
+
+    // Kontrollera om användaren redan har sett erbjudandet
+    const exitIntentShown = localStorage.getItem('exitIntentShown');
+    const lastShownTimestamp = localStorage.getItem('exitIntentLastShown');
+    const minimumTimeBetweenShows = 7 * 24 * 60 * 60 * 1000; // 7 dagar
+
     document.addEventListener('mouseleave', (e) => {
-        if (e.clientY < 0 && !hasShownExitIntent) {
+        const now = new Date().getTime();
+        const timeOnPage = now - performance.timing.navigationStart;
+        const hasBeenOnPageLongEnough = timeOnPage > 30000; // 30 sekunder
+        
+        // Kontrollera alla villkor innan vi visar popup
+        if (e.clientY < 0 && // Musen lämnar fönstret uppåt
+            !hasShownExitIntent && // Inte visad denna session
+            !hasSubmittedForm && // Användaren har inte redan anmält sig
+            hasBeenOnPageLongEnough && // Har varit på sidan tillräckligt länge
+            (!exitIntentShown || // Aldrig sett tidigare
+             (lastShownTimestamp && (now - parseInt(lastShownTimestamp)) > minimumTimeBetweenShows)) // Eller tillräckligt länge sedan sist
+        ) {
             showExitIntentModal();
             hasShownExitIntent = true;
+            localStorage.setItem('exitIntentShown', 'true');
+            localStorage.setItem('exitIntentLastShown', now.toString());
         }
     });
 
@@ -343,7 +362,7 @@ async function handlePaymentAndRegistration(data) {
     }
 }
 
-// Ta bort den gamla form-hanteringen och ersätt med:
+// Uppdatera form submission för att markera när användaren har anmält sig
 document.querySelector("#signup-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const submitButton = e.target.querySelector('button[type="submit"]');
@@ -360,6 +379,8 @@ document.querySelector("#signup-form").addEventListener("submit", async (e) => {
         });
         
         if (response.ok) {
+            hasSubmittedForm = true; // Markera att användaren har anmält sig
+            localStorage.setItem('hasSubmittedForm', 'true'); // Spara i localStorage
             showSuccess("Din anmälan är mottagen! Vi kontaktar dig inom kort.");
             form.reset();
             // Stäng modalen efter framgångsrik anmälan
