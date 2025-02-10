@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     async function getBotResponse(message) {
         try {
             console.log('Sending message:', message);
-            const response = await fetch('/api/chat-ai', {
+            const response = await fetch('/.netlify/functions/chat-ai', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

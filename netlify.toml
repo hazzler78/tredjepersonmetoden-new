@@ -8,6 +8,12 @@
   external_node_modules = ["openai", "dotenv"]
 
 [[redirects]]
+  from = "/api/chat-ai"
+  to = "/.netlify/functions/chat-ai"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
