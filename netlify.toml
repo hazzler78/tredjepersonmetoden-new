@@ -32,4 +32,10 @@
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200 
+  status = 200
+
+[[redirects]]
+  from = "/api/chat-ai"
+  to = "/.netlify/functions/chat-ai"
+  status = 200
+  force = true 

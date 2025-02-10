@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function getBotResponse(message) {
         try {
-            const response = await fetch('/.netlify/functions/chat-ai', {
+            const response = await fetch('/api/chat-ai', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
@@ -162,10 +162,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeChat() {
         const chatToggle = document.querySelector('.chat-toggle');
         const chatContainer = document.querySelector('.chat-container');
+        
+        if (!chatToggle || !chatContainer) {
+            console.error('Chat elements not found');
+            return;
+        }
+
         const closeChat = document.querySelector('.close-chat');
         const sendButton = document.querySelector('.send-message');
         const chatInput = document.querySelector('.chat-input input');
         const chatMessages = document.querySelector('.chat-messages');
+
+        if (!closeChat || !sendButton || !chatInput || !chatMessages) {
+            console.error('Required chat elements missing');
+            return;
+        }
 
         let isTyping = false;
 
@@ -227,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Initiera chatbot när sidan laddats
-    document.addEventListener('DOMContentLoaded', initializeChat);
+    initializeChat();
 });
 
 // Hjälpfunktioner för UI feedback
