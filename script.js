@@ -343,9 +343,11 @@ async function handlePaymentAndRegistration(data) {
     }
 }
 
-// Uppdatera form-hanteringen
+// Ta bort den gamla form-hanteringen och ersätt med:
 document.querySelector("#signup-form").addEventListener("submit", async (e) => {
     e.preventDefault();
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    submitButton.classList.add('loading');
     
     try {
         const form = e.target;
@@ -370,5 +372,7 @@ document.querySelector("#signup-form").addEventListener("submit", async (e) => {
     } catch (error) {
         showError("Ett fel uppstod. Försök igen senare.");
         console.error("Form submission error:", error);
+    } finally {
+        submitButton.classList.remove('loading');
     }
 }); 

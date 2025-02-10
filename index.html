@@ -276,14 +276,16 @@
                 <div class="progress-bar"></div>
             </div>
             <form id="signup-form" 
+                  name="course-signup" 
                   method="POST" 
-                  data-netlify="true" 
-                  name="course-signup"
+                  data-netlify="true"
                   netlify-honeypot="bot-field">
-                <input type="hidden" name="form-name" value="course-signup">
                 <p class="hidden">
-                    <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+                    <label>
+                        Don't fill this out if you're human: <input name="bot-field" />
+                    </label>
                 </p>
+                <input type="hidden" name="form-name" value="course-signup" />
                 <div class="form-group">
                     <label for="name">Namn</label>
                     <input type="text" id="name" name="name" required>
@@ -292,7 +294,13 @@
                     <label for="email">E-post</label>
                     <input type="email" id="email" name="email" required>
                 </div>
-                <button type="submit" class="cta-button">Slutför anmälan</button>
+                <div class="form-group">
+                    <label for="phone">Telefon (valfritt)</label>
+                    <input type="tel" id="phone" name="phone">
+                </div>
+                <button type="submit" class="cta-button">
+                    Slutför anmälan
+                </button>
             </form>
         </div>
     </div>
