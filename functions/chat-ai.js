@@ -38,9 +38,11 @@ exports.handler = async (event) => {
 
     try {
         const body = JSON.parse(event.body);
+        const { message, conversationHistory = [] } = body;
         
         // Logga inkommande meddelande
-        console.log('Received message:', body.message);
+        console.log('Received message:', message);
+        console.log('Conversation history:', conversationHistory);
         
         if (!process.env.OPENAI_API_KEY) {
             console.error('Missing OPENAI_API_KEY');
@@ -99,6 +101,26 @@ RIKTLINJER FÖR DINA SVAR:
 5. Om du är osäker på något, hänvisa till vår support
 6. Fokusera på att hjälpa potentiella kursdeltagare fatta ett välgrundat beslut
 
+SUPPORT-HANTERING:
+När någon vill ha support eller när du erbjuder att koppla till support, följ dessa steg:
+1. Bekräfta att du ska koppla dem till support
+2. Be om deras e-postadress
+3. När du får e-postadressen, svara: "Tack! Jag har skickat din fråga till vår support. De kommer att kontakta dig på [e-postadress] inom 24 timmar. Under tiden, har du några andra frågor jag kan hjälpa dig med?"
+
+KONVERSATIONSMINNE:
+• Kom ihåg vad som diskuterats tidigare i konversationen
+• Följ upp på tidigare frågor och svar
+• Om du har erbjudit support och användaren svarar ja, gå direkt till att be om e-postadressen
+• Om användaren ger sin e-postadress efter att du bett om den, använd support-svaret ovan
+
+EXEMPEL PÅ SUPPORT-KONVERSATION:
+User: "Hur fungerar betalningen?"
+Assistant: "Jag är osäker på den exakta betalningsinformationen. Vill du att jag ska koppla dig till vår support för ett detaljerat svar?"
+User: "Ja, gärna"
+Assistant: "Självklart! Kan du vänligen dela din e-postadress så ser jag till att supporten kontaktar dig?"
+User: "min@email.com"
+Assistant: "Tack! Jag har skickat din fråga till vår support. De kommer att kontakta dig på min@email.com inom 24 timmar. Under tiden, har du några andra frågor jag kan hjälpa dig med?"
+
 EXEMPEL PÅ SVAR:
 När någon frågar "Hur kan denna kursen hjälpa mig?", svara med fokus på personlig utveckling och konkreta fördelar. Till exempel:
 "Kursen kan hjälpa dig på flera sätt! Genom våra beprövade tredje person-tekniker lär du dig att:
@@ -111,26 +133,31 @@ Med över 500 nöjda deltagare har vi sett hur dessa tekniker skapar verklig fö
 
 Om någon frågar om något som inte finns i denna information, svara: "Jag är osäker på den exakta informationen om det. Vill du att jag ska koppla dig till vår support för ett mer detaljerat svar?"`;
 
+        // Skapa messages array med konversationshistorik
+        const messages = [
+            { role: "system", content: systemPrompt },
+            ...conversationHistory.map(msg => ({
+                role: msg.isUser ? "user" : "assistant",
+                content: msg.text
+            })),
+            { role: "user", content: message }
+        ];
+
         const completion = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: body.message }
-            ],
+            messages: messages,
             max_tokens: 150,
             temperature: 0.7,
-            presence_penalty: 0.1,  // Adds slight preference for unique responses
+            presence_penalty: 0.1
         });
 
-        // Logga svaret
-        console.log('OpenAI response:', completion.choices[0].message.content);
+        const response = completion.choices[0].message.content;
+        console.log('OpenAI response:', response);
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({
-                response: completion.choices[0].message.content
-            }),
+            body: JSON.stringify({ response })
         };
     } catch (error) {
         // Mer detaljerad felloggning
@@ -146,7 +173,7 @@ Om någon frågar om något som inte finns i denna information, svara: "Jag är 
             body: JSON.stringify({ 
                 error: 'Internal Server Error',
                 details: process.env.NODE_ENV === 'development' ? error.message : undefined
-            }),
+            })
         };
     }
 };

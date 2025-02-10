@@ -346,24 +346,5 @@
             emailjs.init("YOUR_USER_ID");
         })();
     </script>
-    <!-- Ta bort eller kommentera ut dessa för att se sidan utan tester -->
-    <!--
-    <script>
-        window.fetch = function mockFetch() {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve({
-                        ok: true,
-                        json: () => Promise.resolve({
-                            success: true,
-                            message: 'Anmälan mottagen'
-                        })
-                    });
-                }, 500);
-            });
-        };
-    </script>
-    <script src="test.js"></script>
-    -->
 </body>
 </html> 

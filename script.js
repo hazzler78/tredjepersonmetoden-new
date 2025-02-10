@@ -1,3 +1,116 @@
+// Initiera chatApp först, före alla andra scripts
+window.chatApp = {
+    conversationHistory: [],
+    isLocalTesting: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
+    pendingSupport: {
+        active: false,
+        question: '',
+        email: ''
+    }
+};
+
+// Mock responses för lokal testning
+const mockResponses = {
+    "support-request": {
+        trigger: message => message.includes("test@example.com"),
+        response: "Tack! Jag har skickat din fråga till vår support. De kommer att kontakta dig på test@example.com inom 24 timmar. Under tiden, har du några andra frågor jag kan hjälpa dig med?"
+    },
+    "kurs-tid": {
+        trigger: message => message.toLowerCase().includes("måste man göra allt på en gång"),
+        response: "Nej, kursen är helt flexibel! Du kan anpassa studietakten efter ditt eget schema. Du har livslång tillgång till materialet och kan ta den tid du behöver."
+    },
+    "rabatt": {
+        trigger: message => message.toLowerCase().includes("rabatt"),
+        response: "Just nu erbjuder vi kursen för 2995 kr istället för ordinarie pris 3995 kr. Detta är vårt bästa erbjudande och inkluderar alla bonusar!"
+    },
+    "teknisk-support": {
+        trigger: message => message.toLowerCase().includes("problem") && message.toLowerCase().includes("logga in"),
+        response: "Jag förstår att du har tekniska problem. Låt mig hjälpa dig genom att koppla dig till vår support. Kan du dela din e-postadress?"
+    },
+    "traumahealing": {
+        trigger: message => message.toLowerCase().includes("traumahealing"),
+        response: "I vecka 6 fokuserar vi specifikt på traumahealing. Du får lära dig effektiva coping-strategier och trygghetsskapande övningar. Detta är en av våra mest uppskattade delar av kursen!"
+    }
+};
+
+// Definiera getBotResponse direkt
+window.chatApp.getBotResponse = async function(message) {
+    try {
+        console.log('Sending message:', message);
+
+        // Kolla om vi väntar på en e-postadress för support
+        if (window.chatApp.pendingSupport.active) {
+            // Enkel e-postvalidering
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(message)) {
+                window.chatApp.pendingSupport.email = message;
+                
+                // Här kan du lägga till kod för att skicka supportärendet till ditt system
+                console.log('Support request:', {
+                    question: window.chatApp.pendingSupport.question,
+                    email: window.chatApp.pendingSupport.email
+                });
+
+                // Återställ pending support
+                window.chatApp.pendingSupport.active = false;
+                window.chatApp.pendingSupport.question = '';
+                
+                return `Tack! Jag har skickat din fråga till vår support. De kommer att kontakta dig på ${message} inom 24 timmar. Under tiden, har du några andra frågor jag kan hjälpa dig med?`;
+            } else {
+                return "Det där ser inte ut som en giltig e-postadress. Kan du försöka igen?";
+            }
+        }
+
+        // Om vi kör lokalt, använd mock responses
+        if (window.chatApp.isLocalTesting) {
+            console.log('Using mock responses for local testing');
+            
+            // Hitta matchande mock response
+            for (const [key, mock] of Object.entries(mockResponses)) {
+                if (mock.trigger(message)) {
+                    return mock.response;
+                }
+            }
+
+            // Default mock response om ingen match hittas
+            return "Jag förstår din fråga om " + message + ". Vill du veta mer om något specifikt område av kursen?";
+        }
+
+        // Om inte lokal testning, använd riktiga API:et
+        const response = await fetch('/.netlify/functions/chat-ai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                message,
+                conversationHistory: window.chatApp.conversationHistory,
+                pendingSupport: window.chatApp.pendingSupport
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Om AI:n ber om e-postadress, spara den aktuella frågan
+        if (data.response.toLowerCase().includes("kan du vänligen dela din e-postadress")) {
+            window.chatApp.pendingSupport.active = true;
+            window.chatApp.pendingSupport.question = message;
+        }
+        
+        return data.response;
+    } catch (error) {
+        console.error('Detailed error:', error);
+        if (window.chatApp.isLocalTesting) {
+            return "Detta är ett test-svar eftersom vi kör lokalt. I produktionen skulle detta vara ett riktigt svar från AI:n.";
+        }
+        return `Ett fel uppstod: ${error.message}. Försök igen om en stund.`;
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Smooth scroll for navigation
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -156,31 +269,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'default': 'Tack för din fråga! Vill du veta mer om kursens upplägg, pris eller garantier?'
     };
 
-    async function getBotResponse(message) {
-        try {
-            console.log('Sending message:', message);
-            const response = await fetch('/.netlify/functions/chat-ai', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('API Error:', errorData);
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
-            }
-
-            const data = await response.json();
-            return data.response;
-        } catch (error) {
-            console.error('Detailed error:', error);
-            return `Ett fel uppstod: ${error.message}. Försök igen om en stund.`;
-        }
-    }
-
     function initializeChat() {
         const chatToggle = document.querySelector('.chat-toggle');
         const chatContainer = document.querySelector('.chat-container');
@@ -208,6 +296,12 @@ document.addEventListener('DOMContentLoaded', function() {
             messageDiv.textContent = message;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Spara meddelandet i konversationshistoriken
+            window.chatApp.conversationHistory.push({
+                text: message,
+                isUser: isUser
+            });
         }
 
         function addTypingIndicator() {
@@ -232,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const typingIndicator = addTypingIndicator();
             
             try {
-                const response = await getBotResponse(message);
+                const response = await window.chatApp.getBotResponse(message);
                 typingIndicator.remove();
                 addMessage(response);
             } catch (error) {
