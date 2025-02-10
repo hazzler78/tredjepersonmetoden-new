@@ -33,16 +33,18 @@ exports.handler = async (event) => {
         };
     }
 
+    // Lägg till logging
+    console.log('Function started');
+
     try {
         const body = JSON.parse(event.body);
         
-        // Input validation
-        if (!body.message || typeof body.message !== 'string') {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Invalid message format' })
-            };
+        // Logga inkommande meddelande
+        console.log('Received message:', body.message);
+        
+        if (!process.env.OPENAI_API_KEY) {
+            console.error('Missing OPENAI_API_KEY');
+            throw new Error('Configuration error');
         }
 
         const systemPrompt = `Du \u00E4r en hj\u00E4lpsam kursr\u00E5dgivare f\u00F6r Tredje Person Metoden.
@@ -66,6 +68,9 @@ Svara koncist och v\u00E4nligt p\u00E5 svenska. Fokusera p\u00E5 att hj\u00E4lpa
             presence_penalty: 0.1,  // Adds slight preference for unique responses
         });
 
+        // Logga svaret
+        console.log('OpenAI response:', completion.choices[0].message.content);
+
         return {
             statusCode: 200,
             headers,
@@ -74,23 +79,19 @@ Svara koncist och v\u00E4nligt p\u00E5 svenska. Fokusera p\u00E5 att hj\u00E4lpa
             }),
         };
     } catch (error) {
-        console.error('Error:', error);
-        
-        // More specific error handling
-        if (error instanceof SyntaxError) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Invalid JSON in request body' })
-            };
-        }
+        // Mer detaljerad felloggning
+        console.error('Detailed error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
 
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({ 
                 error: 'Internal Server Error',
-                message: process.env.NODE_ENV === 'development' ? error.message : undefined
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
             }),
         };
     }

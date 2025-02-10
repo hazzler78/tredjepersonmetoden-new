@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function getBotResponse(message) {
         try {
+            console.log('Sending message:', message);
             const response = await fetch('/api/chat-ai', {
                 method: 'POST',
                 headers: {
@@ -148,14 +149,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json();
+                console.error('API Error:', errorData);
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}`);
             }
 
             const data = await response.json();
             return data.response;
         } catch (error) {
-            console.error('Error:', error);
-            return 'Ursäkta, jag hade lite tekniska problem. Kan du omformulera din fråga?';
+            console.error('Detailed error:', error);
+            return `Ett fel uppstod: ${error.message}. Försök igen om en stund.`;
         }
     }
 
